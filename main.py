@@ -1,0 +1,46 @@
+import time
+import pyfiglet
+import shutil
+
+def clear_screen():
+    print("\033[2J\033[H", end="")
+
+def print_centered(text):
+    terminal_width = shutil.get_terminal_size().columns
+
+    lines = text.splitlines()
+
+    for line in lines:
+        print(line.center(terminal_width))
+
+def greet():
+   input("Press ENTER to begin")
+   clear_screen()
+   pomodoro()
+
+def pomodoro():
+    total_seconds = 25 * 60
+
+    try:
+        while total_seconds > 0:
+            clear_screen()
+
+            minutes = total_seconds // 60
+            seconds = total_seconds % 60
+
+            counter = f"{minutes:02d} : {seconds:02d}"
+            art = pyfiglet.figlet_format(counter, font="big")
+            print_centered(art)
+
+            time.sleep(1)
+            total_seconds -= 1
+
+        print("\nTime's up!")
+
+    except KeyboardInterrupt:
+        clear_screen()
+        print("\n\nPomodoro interrupted. Take a breath.")
+        
+if __name__ == "__main__":
+    greet()
+
