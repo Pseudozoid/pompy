@@ -5,6 +5,24 @@ import pyfiglet
 import shutil
 import sys
 
+def get_time_limit():
+    if len(sys.argv) < 2:
+        return 25
+    
+    if sys.argv[1] in ("-h", "--help"):
+        print("Usage: pompy [minutes]")
+        sys.exit(0)
+
+    try:
+        minutes = int(sys.argv[1])
+        if minutes <= 0:
+            raise ValueError
+        return minutes
+
+    except ValueError:
+        print("Error: invalid minute(s) value")
+        sys.exit(1)
+
 def clear_screen():
     print("\033[2J\033[H", end="")
 
@@ -22,7 +40,8 @@ def greet():
    pomodoro()
 
 def pomodoro():
-    total_seconds = 25 * 60
+    time_limit = get_time_limit()
+    total_seconds = time_limit * 60
 
     try:
         while total_seconds > 0:
