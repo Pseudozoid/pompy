@@ -39,27 +39,36 @@ def pomodoro(stdscr, time_limit):
     stdscr.nodelay(True)   
     
     total_seconds = time_limit * 60
+    paused = False
+    last_second = int(time.monotonic())
 
     try:
         while total_seconds > 0:
-            stdscr.clear()
+            key = stdscr.getch()
+            if key == ord(' '):
+                paused = not paused
 
-            rows, cols = stdscr.getmaxyx()
+            now = time.monotonic()
+            if not paused and int(now) != last_second:
+                total_seconds -= 1
+                last_second = int(now)
 
             minutes = total_seconds // 60
             seconds = total_seconds % 60
-            text = f"{minutes:02d} : {seconds:02d}"
-
-            # calculate center position
+            text = f"{minutes:02d}:{seconds:02d}"
+            
+            stdscr.clear()
+            rows, cols = stdscr.getmaxyx()
             y = rows // 2
             x = (cols - len(text)) // 2
-
             stdscr.addstr(y, x, text)
+
+            if paused:
+                pause_text = "PAUSED (space to resume)"
+                stdscr.addstr(y + 2, (cols - len(pause_text)) // 2, pause_text)
+            
             stdscr.refresh()
-
-            time.sleep(1)
-            total_seconds -= 1
-
+            time.sleep(0.1)
         
         show_message(stdscr, "Time's up!")
         
