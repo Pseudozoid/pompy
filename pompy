@@ -31,20 +31,27 @@ def show_message(stdscr, message):
     stdscr.nodelay(False)  # switch back to blocking
     stdscr.getch()         # wait for any key
         
+
 def pomodoro(stdscr, time_limit):
     curses.start_color()
     curses.use_default_colors()
     stdscr.bkgd(' ', curses.color_pair(0))
-    curses.curs_set(0)      
-    stdscr.nodelay(True)   
-    
+    curses.curs_set(0)
+    stdscr.nodelay(True)
+
     total_seconds = time_limit * 60
     paused = False
+    quit_early = False
     last_second = int(time.monotonic())
 
     try:
         while total_seconds > 0:
             key = stdscr.getch()
+
+            if key == ord('q'):
+                quit_early = True
+                break
+
             if key == ord(' '):
                 paused = not paused
 
@@ -56,7 +63,7 @@ def pomodoro(stdscr, time_limit):
             minutes = total_seconds // 60
             seconds = total_seconds % 60
             text = f"{minutes:02d}:{seconds:02d}"
-            
+
             stdscr.clear()
             rows, cols = stdscr.getmaxyx()
             y = rows // 2
@@ -66,12 +73,15 @@ def pomodoro(stdscr, time_limit):
             if paused:
                 pause_text = "PAUSED (space to resume)"
                 stdscr.addstr(y + 2, (cols - len(pause_text)) // 2, pause_text)
-            
+
             stdscr.refresh()
             time.sleep(0.1)
-        
-        show_message(stdscr, "Time's up!")
-        
+
+        if quit_early:
+            show_message(stdscr, "Quit. Take a breath.")
+        else:
+            show_message(stdscr, "Time's up!")
+
     except KeyboardInterrupt:
         show_message(stdscr, "Pomodoro interrupted. Take a breath.")
 
