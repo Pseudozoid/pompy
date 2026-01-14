@@ -31,7 +31,6 @@ def show_message(stdscr, message):
     stdscr.nodelay(False)  # switch back to blocking
     stdscr.getch()         # wait for any key
         
-
 def pomodoro(stdscr, time_limit):
     curses.start_color()
     curses.use_default_colors()
@@ -66,13 +65,33 @@ def pomodoro(stdscr, time_limit):
 
             stdscr.clear()
             rows, cols = stdscr.getmaxyx()
+
             y = rows // 2
             x = (cols - len(text)) // 2
-            stdscr.addstr(y, x, text)
+
+            box_width = len(text) + 6
+            box_height = 5
+            top = y - box_height // 2
+            left = (cols - box_width) // 2
+
+            for i in range(box_width):
+                stdscr.addch(top, left + i, '-')
+                stdscr.addch(top + box_height - 1, left + i, '-')
+
+            for i in range(box_height):
+                stdscr.addch(top + i, left, '|')
+                stdscr.addch(top + i, left + box_width - 1, '|')
+
+            stdscr.addstr(y, x, text, curses.A_BOLD)
 
             if paused:
-                pause_text = "PAUSED (space to resume)"
-                stdscr.addstr(y + 2, (cols - len(pause_text)) // 2, pause_text)
+                pause_text = "PAUSED (space to resume, q to quit)"
+                stdscr.addstr(
+                    y + 2,
+                    (cols - len(pause_text)) // 2,
+                    pause_text,
+                    curses.A_DIM
+                )
 
             stdscr.refresh()
             time.sleep(0.1)
