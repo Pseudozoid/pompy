@@ -5,3 +5,8 @@ Pomodoro timer for your terminal to help you focus
 ```bash
 pompy [minutes]
 ```
+
+## Controls
+- space — pause / resume
+- q — quit
+
