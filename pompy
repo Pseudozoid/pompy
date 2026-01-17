@@ -28,93 +28,6 @@ def show_message(stdscr, message):
     stdscr.addstr(y, x, message)
     stdscr.refresh()
 
-    stdscr.nodelay(False)  # switch back to blocking
-    stdscr.getch()         # wait for any key
-        
-def pomodoro(stdscr, time_limit):
-    curses.start_color()
-    curses.use_default_colors()
-    stdscr.bkgd(' ', curses.color_pair(0))
-    curses.curs_set(0)
-    stdscr.nodelay(True)
-
-    total_seconds = time_limit * 60
-    paused = False
-    quit_early = False
-    last_second = int(time.monotonic())
-
-    try:
-        while total_seconds > 0:
-            key = stdscr.getch()
-
-            if key == ord('q'):
-                quit_early = True
-                break
-
-            if key == ord(' '):
-                paused = not paused
-
-            now = time.monotonic()
-            if not paused and int(now) != last_second:
-                total_seconds -= 1
-                last_second = int(now)
-
-            minutes = total_seconds // 60
-            seconds = total_seconds % 60
-            text = f"{minutes:02d}:{seconds:02d}"
-
-            stdscr.clear()
-            rows, cols = stdscr.getmaxyx()
-
-            y = rows // 2
-            x = (cols - len(text)) // 2
-
-            box_width = len(text) + 6
-            box_height = 5
-            top = y - box_height // 2
-            left = (cols - box_width) // 2
-
-            for i in range(box_width):
-                stdscr.addch(top, left + i, '-')
-                stdscr.addch(top + box_height - 1, left + i, '-')
-
-            for i in range(box_height):
-                stdscr.addch(top + i, left, '|')
-                stdscr.addch(top + i, left + box_width - 1, '|')
-
-            stdscr.addstr(y, x, text, curses.A_BOLD)
-
-            if paused:
-#!/usr/bin/env python3
-import sys
-import time
-import curses
-
-def get_time_limit():
-    if len(sys.argv) < 2:
-        return 25  # default pomodoro
-
-    if sys.argv[1] in ("-h", "--help"):
-        print("Usage: pompy [minutes]")
-        sys.exit(0)
-
-    try:
-        minutes = int(sys.argv[1])
-        if minutes <= 0:
-            raise ValueError
-        return minutes
-    except ValueError:
-        print("Error: minutes must be a positive integer")
-        sys.exit(1)
-
-def show_message(stdscr, message):
-    stdscr.clear()
-    rows, cols = stdscr.getmaxyx()
-    y = rows // 2
-    x = (cols - len(message)) // 2
-    stdscr.addstr(y, x, message)
-    stdscr.refresh()
-
     stdscr.nodelay(False)
     stdscr.getch()
 
@@ -173,12 +86,13 @@ def pomodoro(stdscr, time_limit):
             left = (cols - box_width) // 2
 
             draw_box(stdscr, top, left, box_width, box_height)
-            stdscr.addstr(y, x, text, curses.A_BOLD)
+            timer_attr = curses.A_BOLD if not paused else curses.A_NORMAL
+            stdscr.addstr(y, x, text, timer_attr)
 
             if paused:
                 pause_text = "PAUSED (space to resume, q to quit)"
                 stdscr.addstr(
-                    y + 2,
+                    y + 4,
                     (cols - len(pause_text)) // 2,
                     pause_text,
                     curses.A_DIM
