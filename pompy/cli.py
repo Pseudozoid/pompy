@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import sys
 import time
 import curses
@@ -118,7 +117,6 @@ def pomodoro(stdscr, time_limit):
     except KeyboardInterrupt:
         show_message(stdscr, "Pomodoro interrupted. Take a breath.")
 
-if __name__ == "__main__":
+def main():
     time_limit = get_time_limit()
     curses.wrapper(pomodoro, time_limit)
-

@@ -1,0 +1,14 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pompy"
+version = "0.1.0"
+description = "A calm, terminal-based Pomodoro timer"
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = []
+
+[project.scripts]
+pompy = "pompy.cli:main"
