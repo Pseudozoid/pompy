@@ -2,9 +2,9 @@ import sys
 import time
 import curses
 
-def get_time_limit():
+def get_args():
     if len(sys.argv) < 2:
-        return 25  # default pomodoro
+        return 25, None  # default pomodoro
 
     if sys.argv[1] in ("-h", "--help"):
         print("Usage: pompy [minutes]")
@@ -14,10 +14,15 @@ def get_time_limit():
         minutes = int(sys.argv[1])
         if minutes <= 0:
             raise ValueError
-        return minutes
     except ValueError:
         print("Error: minutes must be a positive integer")
         sys.exit(1)
+
+    label = None
+    if len(sys.argv) > 2:
+        label = " ".join(sys.argv[2:])
+
+    return minutes, label
 
 def show_message(stdscr, message):
     stdscr.clear()
@@ -41,7 +46,7 @@ def draw_box(stdscr, top, left, width, height):
         stdscr.addch(top + i, left, '|')
         stdscr.addch(top + i, left + width - 1, '|')
 
-def pomodoro(stdscr, time_limit):
+def pomodoro(stdscr, time_limit, label):
     curses.start_color()
     curses.use_default_colors()
     stdscr.bkgd(' ', curses.color_pair(0))
@@ -85,7 +90,7 @@ def pomodoro(stdscr, time_limit):
             x = (cols - len(text)) // 2
 
             box_width = len(text) + 6
-            box_height = 5
+            box_height = 7
             top = y - box_height // 2
             left = (cols - box_width) // 2
 
@@ -96,6 +101,14 @@ def pomodoro(stdscr, time_limit):
                 timer_attr = curses.color_pair(1) | curses.A_BOLD
 
             stdscr.addstr(y, x, text, timer_attr)
+
+            if label:
+                stdscr.addstr(
+                    y + 2,
+                    (cols - len(label)) // 2,
+                    label,
+                    curses.A_DIM
+                )
 
             if paused:
                 pause_text = "PAUSED (space to resume, q to quit)"
@@ -118,5 +131,5 @@ def pomodoro(stdscr, time_limit):
         show_message(stdscr, "Pomodoro interrupted. Take a breath.")
 
 def main():
-    time_limit = get_time_limit()
-    curses.wrapper(pomodoro, time_limit)
+    time_limit, label = get_args()
+    curses.wrapper(pomodoro, time_limit, label)
