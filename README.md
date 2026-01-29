@@ -23,7 +23,7 @@ Or from a local clone:
 
 ## Usage
 ```bash
-pompy [minutes]
+pompy [minutes] [label]
 ```
 
 ## Controls
