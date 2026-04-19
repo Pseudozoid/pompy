@@ -7,6 +7,86 @@ from pompy import __version__
 
 SessionPlan = List[Tuple[str, int]]
 
+BIG_DIGITS = {
+    "0": [
+        " ### ",
+        "#   #",
+        "#   #",
+        "#   #",
+        " ### ",
+    ],
+    "1": [
+        "  #  ",
+        " ##  ",
+        "  #  ",
+        "  #  ",
+        " ### ",
+    ],
+    "2": [
+        " ### ",
+        "#   #",
+        "   # ",
+        "  #  ",
+        "#####",
+    ],
+    "3": [
+        "#### ",
+        "    #",
+        " ### ",
+        "    #",
+        "#### ",
+    ],
+    "4": [
+        "#   #",
+        "#   #",
+        "#####",
+        "    #",
+        "    #",
+    ],
+    "5": [
+        "#####",
+        "#    ",
+        "#### ",
+        "    #",
+        "#### ",
+    ],
+    "6": [
+        " ### ",
+        "#    ",
+        "#### ",
+        "#   #",
+        " ### ",
+    ],
+    "7": [
+        "#####",
+        "    #",
+        "   # ",
+        "  #  ",
+        "  #  ",
+    ],
+    "8": [
+        " ### ",
+        "#   #",
+        " ### ",
+        "#   #",
+        " ### ",
+    ],
+    "9": [
+        " ### ",
+        "#   #",
+        " ####",
+        "    #",
+        " ### ",
+    ],
+    ":": [
+        "  ",
+        " #",
+        "  ",
+        " #",
+        "  ",
+    ],
+}
+
 
 def positive_int(value: str) -> int:
     parsed = int(value)
@@ -53,6 +133,7 @@ def get_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
         help="Optional label shown under the timer.",
     )
     parser.add_argument(
+        "-b",
         "--break",
         dest="short_break",
         type=positive_int,
@@ -60,6 +141,7 @@ def get_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
         help="Short break length in minutes (default: 5).",
     )
     parser.add_argument(
+        "-B",
         "--long-break",
         dest="long_break",
         type=positive_int,
@@ -67,18 +149,21 @@ def get_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
         help="Long break length in minutes (default: 15).",
     )
     parser.add_argument(
+        "-c",
         "--cycles",
         type=positive_int,
         default=1,
         help="Number of work sessions to run (default: 1).",
     )
     parser.add_argument(
+        "-t",
         "--transition-seconds",
         type=positive_float,
         default=2.0,
         help="Transition screen duration in seconds (default: 2.0).",
     )
     parser.add_argument(
+        "-w",
         "--transition-wait-key",
         action="store_true",
         help="Wait for a key press on transition screens before the next phase.",
@@ -138,6 +223,18 @@ def draw_progress_bar(width: int, ratio: float) -> str:
     return "[" + ("#" * filled) + ("-" * (inner_width - filled)) + "]"
 
 
+def build_large_timer_lines(text: str) -> List[str]:
+    lines = ["", "", "", "", ""]
+    for char_index, char in enumerate(text):
+        glyph = BIG_DIGITS.get(char)
+        if glyph is None:
+            continue
+        spacer = " " if char_index > 0 else ""
+        for row in range(5):
+            lines[row] += spacer + glyph[row]
+    return lines
+
+
 def draw_phase(
     stdscr,
     phase_total_seconds: int,
@@ -152,16 +249,32 @@ def draw_phase(
     is_long_break = phase_name == "Long break"
 
     text = format_mmss(total_seconds)
+    large_lines = build_large_timer_lines(text)
+    large_width = max(len(line) for line in large_lines)
 
     stdscr.clear()
     rows, cols = stdscr.getmaxyx()
     compact_mode = rows < 16 or cols < 52
+    can_use_large_digits = not compact_mode and rows >= 22 and cols >= large_width + 12
+
     y = rows // 2
     x = max(0, (cols - len(text)) // 2)
+    timer_top = y
+    timer_height = 1
 
-    box_width = len(text) + 6
-    box_height = 7
-    top = y - box_height // 2
+    if can_use_large_digits:
+        timer_height = 5
+        timer_top = max(6, (rows // 2) - 3)
+
+    if can_use_large_digits:
+        box_width = large_width + 6
+        box_height = timer_height + 4
+    else:
+        box_width = len(text) + 6
+        box_height = 7
+
+    box_center_y = timer_top + (timer_height // 2)
+    top = box_center_y - box_height // 2
     left = (cols - box_width) // 2
 
     status = f"{phase_name} ({phase_index}/{total_phases})"
@@ -194,26 +307,36 @@ def draw_phase(
         timer_attr = timer_color | curses.A_DIM
     else:
         timer_attr = timer_color | curses.A_BOLD
-    safe_addstr(stdscr, y, x, text, timer_attr)
+    if can_use_large_digits:
+        large_x = max(0, (cols - large_width) // 2)
+        for row_index, line in enumerate(large_lines):
+            safe_addstr(stdscr, timer_top + row_index, large_x, line, timer_attr)
+    else:
+        safe_addstr(stdscr, y, x, text, timer_attr)
 
     ratio = (phase_total_seconds - total_seconds) / max(1, phase_total_seconds)
     progress_bar = draw_progress_bar(min(40, cols - 6), ratio)
-    progress_text = f"{int(ratio * 100):3d}%"
-    progress_line = f"{progress_bar}{progress_text}"
+    progress_line = progress_bar
+
+    progress_center_x = cols // 2
+    if 0 <= left and box_width <= cols:
+        progress_center_x = left + (box_width // 2)
+    progress_col = max(0, progress_center_x - (len(progress_line) // 2))
 
     if compact_mode:
         safe_addstr(
             stdscr,
-            min(rows - 2, y + 2),
-            max(0, (cols - len(progress_line)) // 2),
+            min(rows - 2, y + 3),
+            progress_col,
             progress_line,
             curses.A_DIM,
         )
     else:
+        progress_row = min(rows - 3, timer_top + timer_height + 3)
         safe_addstr(
             stdscr,
-            min(rows - 4, y + 4),
-            max(0, (cols - len(progress_line)) // 2),
+            progress_row,
+            progress_col,
             progress_line,
             curses.A_DIM,
         )
@@ -229,7 +352,10 @@ def draw_phase(
         phase_label_attr = curses.A_DIM
 
     if phase_label:
-        label_row = min(rows - 1, y + (1 if compact_mode else 2))
+        if compact_mode:
+            label_row = min(rows - 1, y + 1)
+        else:
+            label_row = min(rows - 1, timer_top + timer_height + 1)
         safe_addstr(
             stdscr,
             label_row,
@@ -240,7 +366,10 @@ def draw_phase(
 
     if paused:
         pause_text = "PAUSED (space to resume, q to quit)"
-        pause_row = min(rows - 1, y + (3 if compact_mode else 6))
+        if compact_mode:
+            pause_row = min(rows - 1, y + 3)
+        else:
+            pause_row = min(rows - 2, timer_top + timer_height + 4)
         safe_addstr(
             stdscr,
             pause_row,
@@ -347,13 +476,19 @@ def show_message(stdscr, message):
     stdscr.getch()
 
 def draw_box(stdscr, top, left, width, height, attr=0):
-    # horizontal borders
-    for i in range(width):
+    # corners
+    stdscr.addch(top, left, '+', attr)
+    stdscr.addch(top, left + width - 1, '+', attr)
+    stdscr.addch(top + height - 1, left, '+', attr)
+    stdscr.addch(top + height - 1, left + width - 1, '+', attr)
+
+    # horizontal edges
+    for i in range(1, width - 1):
         stdscr.addch(top, left + i, '-', attr)
         stdscr.addch(top + height - 1, left + i, '-', attr)
 
-    # vertical borders
-    for i in range(height):
+    # vertical edges
+    for i in range(1, height - 1):
         stdscr.addch(top + i, left, '|', attr)
         stdscr.addch(top + i, left + width - 1, '|', attr)
 

@@ -60,3 +60,13 @@ def test_transition_options_parse() -> None:
 
     assert args.transition_seconds == 3.5
     assert args.transition_wait_key is True
+
+
+def test_short_flags_parse() -> None:
+    args = get_args(["-b", "7", "-B", "20", "-c", "3", "-t", "4", "-w"])
+
+    assert args.short_break == 7
+    assert args.long_break == 20
+    assert args.cycles == 3
+    assert args.transition_seconds == 4.0
+    assert args.transition_wait_key is True

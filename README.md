@@ -52,6 +52,7 @@ Run multiple Pomodoro cycles with automatic breaks:
 
 ```bash
 pompy --cycles 4 --break 5 --long-break 15 --label "Study"
+pompy -c 4 -b 5 -B 15 -l "Study"
 ```
 
 Control the transition screen between phases:
@@ -59,6 +60,8 @@ Control the transition screen between phases:
 ```bash
 pompy --transition-seconds 3
 pompy --transition-wait-key
+pompy -t 3
+pompy -w
 ```
 
 Defaults:
