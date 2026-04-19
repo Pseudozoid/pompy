@@ -1,76 +1,93 @@
 # pompy
-Pomodoro timer for your terminal to help you focus, written in Python using `curses`.
 
-## Installation
+A simple Pomodoro timer for your terminal.
 
-### For end users
+Use it to stay focused in timed work sessions without leaving the command line.
 
-The recommended install path for a finished command-line app is PyPI plus `pipx`. Once the project is published, install it like this:
+## Install
+
+`pompy` is distributed on PyPI as `pompy-timer`.
+
+If you already have `pipx`:
 
 ```bash
 pipx install pompy-timer
 ```
 
-This installs the distribution named `pompy-timer`, while the command stays `pompy` and the Python import package stays `pompy`.
-
-If you want to install directly from a local clone:
+If you do not have `pipx` yet:
 
 ```bash
-pipx install .
+python3 -m pip install --user pipx
+python3 -m pipx ensurepath
 ```
 
-### For development
-
-Use an editable install so code changes are picked up immediately without reinstalling:
+Restart your terminal, then run:
 
 ```bash
-python -m pip install -e .
+pipx install pompy-timer
 ```
 
-After that, just rerun `pompy` in the same environment. You only need to reinstall when you change package metadata, dependencies, or packaging files.
+## Quick Start
 
-### Prerequisites
-- Python 3.8+
-- `pipx` if you want the end-user install path above
-
-## Usage
-```bash
-pompy [minutes] [label]
-pompy [-m MINUTES] [-l LABEL]
-```
-
-Examples:
+Start a standard 25-minute session:
 
 ```bash
 pompy
-pompy 15 focus
-pompy --minutes 50 --label deep work
 ```
 
-## Development loop
-
-When you are iterating on the code, keep the editable install active and run the script again after each change:
+Start a custom session:
 
 ```bash
-python -m pip install -e .
-pompy
+pompy 15
+pompy 50 "Deep work"
 ```
 
-That is the fastest way to test new changes locally.
+You can also use flags:
 
-## Release
+```bash
+pompy --minutes 30 --label "Code review"
+```
 
-Releases are published from GitHub Actions using PyPI trusted publishing.
+Run multiple Pomodoro cycles with automatic breaks:
 
-1. Create and push a version tag, for example `v0.1.1`.
-2. Or trigger the workflow manually from the Actions tab.
-3. Configure the PyPI project to trust this GitHub repository for publishing.
+```bash
+pompy --cycles 4 --break 5 --long-break 15 --label "Study"
+```
 
-Use the PyPI project name `pompy-timer` when configuring trusted publishing.
+Defaults:
 
-The workflow builds both the source distribution and wheel before publishing.
+- `--cycles` is `1`
+- `--break` is `5` minutes
+- `--long-break` is `15` minutes
 
-## Controls
-- space — pause / resume
-- q — quit
+## While The Timer Runs
+
+- `space` to pause or resume
+- `q` to quit early
+
+## Common Commands
+
+Show help:
+
+```bash
+pompy --help
+```
+
+Show version:
+
+```bash
+pompy --version
+```
+
+Update:
+
+```bash
+pipx upgrade pompy-timer
+```
+
+Uninstall:
+
+```bash
+pipx uninstall pompy-timer
+```
 
