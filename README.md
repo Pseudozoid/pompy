@@ -24,6 +24,15 @@ Or from a local clone:
 ## Usage
 ```bash
 pompy [minutes] [label]
+pompy [-m MINUTES] [-l LABEL]
+```
+
+Examples:
+
+```bash
+pompy
+pompy 15 focus
+pompy --minutes 50 --label deep work
 ```
 
 ## Controls

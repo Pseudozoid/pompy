@@ -1,26 +1,51 @@
-import sys
-import time
+import argparse
 import curses
+import time
+
+from pompy import __version__
 
 def get_args():
-    if len(sys.argv) < 2:
-        return 25, None  # default pomodoro
+    parser = argparse.ArgumentParser(
+        prog="pompy",
+        description="Pomodoro timer for your terminal.",
+    )
+    parser.add_argument(
+        "minutes",
+        nargs="?",
+        type=int,
+        default=25,
+        help="Pomodoro length in minutes (default: 25).",
+    )
+    parser.add_argument(
+        "label",
+        nargs="*",
+        help="Optional label shown under the timer.",
+    )
+    parser.add_argument(
+        "-m",
+        "--minutes",
+        dest="minutes_flag",
+        type=int,
+        help="Pomodoro length in minutes.",
+    )
+    parser.add_argument(
+        "-l",
+        "--label",
+        dest="label_flag",
+        help="Optional label shown under the timer.",
+    )
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=f"pompy {__version__}",
+    )
 
-    if sys.argv[1] in ("-h", "--help"):
-        print("Usage: pompy [minutes]")
-        sys.exit(0)
+    args = parser.parse_args()
+    minutes = args.minutes_flag if args.minutes_flag is not None else args.minutes
+    label = args.label_flag if args.label_flag is not None else " ".join(args.label) or None
 
-    try:
-        minutes = int(sys.argv[1])
-        if minutes <= 0:
-            raise ValueError
-    except ValueError:
-        print("Error: minutes must be a positive integer")
-        sys.exit(1)
-
-    label = None
-    if len(sys.argv) > 2:
-        label = " ".join(sys.argv[2:])
+    if minutes <= 0:
+        parser.error("minutes must be a positive integer")
 
     return minutes, label
 
