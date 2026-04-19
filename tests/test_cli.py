@@ -9,6 +9,8 @@ def test_default_args() -> None:
     assert args.short_break == 5
     assert args.long_break == 15
     assert args.cycles == 1
+    assert args.transition_seconds == 2.0
+    assert args.transition_wait_key is False
 
 
 def test_positional_values() -> None:
@@ -51,3 +53,10 @@ def test_break_cycle_plan_uses_long_break_every_fourth_cycle() -> None:
         ("Long break", 15),
         ("Work", 25),
     ]
+
+
+def test_transition_options_parse() -> None:
+    args = get_args(["--transition-seconds", "3.5", "--transition-wait-key"])
+
+    assert args.transition_seconds == 3.5
+    assert args.transition_wait_key is True

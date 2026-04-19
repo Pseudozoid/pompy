@@ -15,6 +15,13 @@ def positive_int(value: str) -> int:
     return parsed
 
 
+def positive_float(value: str) -> float:
+    parsed = float(value)
+    if parsed <= 0:
+        raise argparse.ArgumentTypeError("must be a positive number")
+    return parsed
+
+
 def get_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         prog="pompy",
@@ -66,6 +73,17 @@ def get_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
         help="Number of work sessions to run (default: 1).",
     )
     parser.add_argument(
+        "--transition-seconds",
+        type=positive_float,
+        default=2.0,
+        help="Transition screen duration in seconds (default: 2.0).",
+    )
+    parser.add_argument(
+        "--transition-wait-key",
+        action="store_true",
+        help="Wait for a key press on transition screens before the next phase.",
+    )
+    parser.add_argument(
         "--version",
         action="version",
         version=f"pompy {__version__}",
@@ -107,8 +125,22 @@ def safe_addstr(stdscr, y: int, x: int, text: str, attr: int = 0) -> None:
         pass
 
 
+def format_mmss(total_seconds: int) -> str:
+    minutes = total_seconds // 60
+    seconds = total_seconds % 60
+    return f"{minutes:02d}:{seconds:02d}"
+
+
+def draw_progress_bar(width: int, ratio: float) -> str:
+    inner_width = max(10, width - 2)
+    clamped = max(0.0, min(1.0, ratio))
+    filled = int(inner_width * clamped)
+    return "[" + ("#" * filled) + ("-" * (inner_width - filled)) + "]"
+
+
 def draw_phase(
     stdscr,
+    phase_total_seconds: int,
     total_seconds: int,
     label: Optional[str],
     phase_name: str,
@@ -119,12 +151,11 @@ def draw_phase(
     is_break = phase_name != "Work"
     is_long_break = phase_name == "Long break"
 
-    minutes = total_seconds // 60
-    seconds = total_seconds % 60
-    text = f"{minutes:02d}:{seconds:02d}"
+    text = format_mmss(total_seconds)
 
     stdscr.clear()
     rows, cols = stdscr.getmaxyx()
+    compact_mode = rows < 16 or cols < 52
     y = rows // 2
     x = max(0, (cols - len(text)) // 2)
 
@@ -143,14 +174,14 @@ def draw_phase(
 
     safe_addstr(
         stdscr,
-        max(0, y - 3),
+        3,
         max(0, (cols - len(status)) // 2),
         status,
         status_attr,
     )
 
     box_attr = status_attr
-    if rows > box_height and cols > box_width and top >= 0 and left >= 0:
+    if not compact_mode and rows > box_height and cols > box_width and top >= 0 and left >= 0:
         draw_box(stdscr, top, left, box_width, box_height, box_attr)
 
     if is_long_break:
@@ -165,6 +196,28 @@ def draw_phase(
         timer_attr = timer_color | curses.A_BOLD
     safe_addstr(stdscr, y, x, text, timer_attr)
 
+    ratio = (phase_total_seconds - total_seconds) / max(1, phase_total_seconds)
+    progress_bar = draw_progress_bar(min(40, cols - 6), ratio)
+    progress_text = f"{int(ratio * 100):3d}%"
+    progress_line = f"{progress_bar}{progress_text}"
+
+    if compact_mode:
+        safe_addstr(
+            stdscr,
+            min(rows - 2, y + 2),
+            max(0, (cols - len(progress_line)) // 2),
+            progress_line,
+            curses.A_DIM,
+        )
+    else:
+        safe_addstr(
+            stdscr,
+            min(rows - 4, y + 4),
+            max(0, (cols - len(progress_line)) // 2),
+            progress_line,
+            curses.A_DIM,
+        )
+
     if is_long_break:
         phase_label = "LONG BREAK"
         phase_label_attr = curses.color_pair(6) | curses.A_BOLD
@@ -176,9 +229,10 @@ def draw_phase(
         phase_label_attr = curses.A_DIM
 
     if phase_label:
+        label_row = min(rows - 1, y + (1 if compact_mode else 2))
         safe_addstr(
             stdscr,
-            min(rows - 1, y + 2),
+            label_row,
             max(0, (cols - len(phase_label)) // 2),
             phase_label,
             phase_label_attr,
@@ -186,9 +240,10 @@ def draw_phase(
 
     if paused:
         pause_text = "PAUSED (space to resume, q to quit)"
+        pause_row = min(rows - 1, y + (3 if compact_mode else 6))
         safe_addstr(
             stdscr,
-            min(rows - 1, y + 4),
+            pause_row,
             max(0, (cols - len(pause_text)) // 2),
             pause_text,
             curses.color_pair(3) | curses.A_DIM,
@@ -206,6 +261,7 @@ def run_phase(
     total_phases: int,
 ) -> bool:
     total_seconds = minutes * 60
+    phase_total_seconds = total_seconds
     paused = False
     last_second = int(time.monotonic())
 
@@ -226,6 +282,7 @@ def run_phase(
         phase_label = label if phase_name == "Work" else None
         draw_phase(
             stdscr,
+            phase_total_seconds,
             total_seconds,
             phase_label,
             phase_name,
@@ -234,6 +291,46 @@ def run_phase(
             paused,
         )
         time.sleep(0.1)
+
+    return False
+
+
+def show_transition(
+    stdscr,
+    phase_name: str,
+    minutes: int,
+    phase_index: int,
+    total_phases: int,
+    transition_seconds: float,
+    wait_for_key: bool,
+) -> bool:
+    stdscr.clear()
+    rows, cols = stdscr.getmaxyx()
+
+    title = f"Up next: {phase_name}"
+    detail = f"{format_mmss(minutes * 60)} ({phase_index}/{total_phases})"
+    if wait_for_key:
+        hint = "Press any key to begin (q to quit)"
+    else:
+        hint = "Get ready..."
+
+    safe_addstr(stdscr, rows // 2 - 1, max(0, (cols - len(title)) // 2), title, curses.A_BOLD)
+    safe_addstr(stdscr, rows // 2, max(0, (cols - len(detail)) // 2), detail, curses.A_DIM)
+    safe_addstr(stdscr, rows // 2 + 2, max(0, (cols - len(hint)) // 2), hint, curses.A_DIM)
+    stdscr.refresh()
+
+    if wait_for_key:
+        stdscr.nodelay(False)
+        key = stdscr.getch()
+        stdscr.nodelay(True)
+        return key == ord('q')
+
+    start = time.monotonic()
+    while time.monotonic() - start < transition_seconds:
+        key = stdscr.getch()
+        if key == ord('q'):
+            return True
+        time.sleep(0.05)
 
     return False
 
@@ -260,7 +357,7 @@ def draw_box(stdscr, top, left, width, height, attr=0):
         stdscr.addch(top + i, left, '|', attr)
         stdscr.addch(top + i, left + width - 1, '|', attr)
 
-def run_session(stdscr, plan: SessionPlan, label: Optional[str]) -> None:
+def run_session(stdscr, plan: SessionPlan, label: Optional[str], args: argparse.Namespace) -> None:
     curses.start_color()
     curses.use_default_colors()
     stdscr.bkgd(' ', curses.color_pair(0))
@@ -276,6 +373,20 @@ def run_session(stdscr, plan: SessionPlan, label: Optional[str]) -> None:
 
     try:
         for phase_index, (phase_name, minutes) in enumerate(plan, start=1):
+            if phase_index > 1:
+                quit_early = show_transition(
+                    stdscr,
+                    phase_name,
+                    minutes,
+                    phase_index,
+                    len(plan),
+                    transition_seconds=args.transition_seconds,
+                    wait_for_key=args.transition_wait_key,
+                )
+                if quit_early:
+                    show_message(stdscr, "Quit. Take a breath.")
+                    return
+
             quit_early = run_phase(
                 stdscr,
                 phase_name,
@@ -301,4 +412,4 @@ def main():
         long_break=args.long_break,
         cycles=args.cycles,
     )
-    curses.wrapper(run_session, plan, args.label)
+    curses.wrapper(run_session, plan, args.label, args)
