@@ -8,8 +8,10 @@ Pomodoro timer for your terminal to help you focus, written in Python using `cur
 The recommended install path for a finished command-line app is PyPI plus `pipx`. Once the project is published, install it like this:
 
 ```bash
-pipx install pompy
+pipx install pompy-timer
 ```
+
+This installs the distribution named `pompy-timer`, while the command stays `pompy` and the Python import package stays `pompy`.
 
 If you want to install directly from a local clone:
 
@@ -63,6 +65,8 @@ Releases are published from GitHub Actions using PyPI trusted publishing.
 1. Create and push a version tag, for example `v0.1.1`.
 2. Or trigger the workflow manually from the Actions tab.
 3. Configure the PyPI project to trust this GitHub repository for publishing.
+
+Use the PyPI project name `pompy-timer` when configuring trusted publishing.
 
 The workflow builds both the source distribution and wheel before publishing.
 

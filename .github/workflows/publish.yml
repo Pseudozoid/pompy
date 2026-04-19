@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: pypi
-      url: https://pypi.org/p/pompy
+      url: https://pypi.org/p/pompy-timer
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
