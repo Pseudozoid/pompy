@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools"]
+requires = ["setuptools>=64", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -9,6 +9,23 @@ description = "A terminal-based Pomodoro timer"
 readme = "README.md"
 requires-python = ">=3.8"
 dependencies = []
+license = { file = "LICENSE" }
+authors = [
+	{ name = "Sarath Madhav" },
+]
+classifiers = [
+	"Development Status :: 3 - Alpha",
+	"Environment :: Console :: Curses",
+	"Intended Audience :: End Users/Desktop",
+	"License :: OSI Approved :: MIT License",
+	"Programming Language :: Python :: 3",
+	"Programming Language :: Python :: 3 :: Only",
+	"Programming Language :: Python :: 3.8",
+	"Programming Language :: Python :: 3.9",
+	"Programming Language :: Python :: 3.10",
+	"Programming Language :: Python :: 3.11",
+	"Programming Language :: Python :: 3.12",
+]
 
 [project.scripts]
 pompy = "pompy.cli:main"
