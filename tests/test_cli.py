@@ -11,6 +11,7 @@ def test_default_args() -> None:
     assert args.cycles == 1
     assert args.transition_seconds == 2.0
     assert args.transition_wait_key is False
+    assert args.digit_style == "block"
 
 
 def test_positional_values() -> None:
@@ -70,3 +71,14 @@ def test_short_flags_parse() -> None:
     assert args.cycles == 3
     assert args.transition_seconds == 4.0
     assert args.transition_wait_key is True
+
+
+def test_digit_style_options_parse() -> None:
+    args = get_args(["--digit-style", "segment"])
+    assert args.digit_style == "segment"
+
+    args = get_args(["--digit-style", "outline"])
+    assert args.digit_style == "outline"
+
+    args = get_args(["-d", "minimal"])
+    assert args.digit_style == "minimal"

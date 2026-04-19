@@ -64,6 +64,15 @@ pompy -t 3
 pompy -w
 ```
 
+Choose a large timer digit style:
+
+```bash
+pompy --digit-style block
+pompy --digit-style outline
+pompy --digit-style segment
+pompy -d minimal
+```
+
 Defaults:
 
 - `--cycles` is `1`

@@ -1,13 +1,13 @@
 import argparse
 import curses
 import time
-from typing import List, Optional, Sequence, Tuple
+from typing import Dict, List, Optional, Sequence, Tuple
 
 from pompy import __version__
 
 SessionPlan = List[Tuple[str, int]]
 
-BIG_DIGITS = {
+BLOCK_DIGITS = {
     "0": [
         " ### ",
         "#   #",
@@ -85,6 +85,253 @@ BIG_DIGITS = {
         " #",
         "  ",
     ],
+}
+
+SEGMENT_DIGITS = {
+    "0": [
+        " --- ",
+        "|   |",
+        "|   |",
+        "|   |",
+        " --- ",
+    ],
+    "1": [
+        "  |  ",
+        "  |  ",
+        "  |  ",
+        "  |  ",
+        "  |  ",
+    ],
+    "2": [
+        " --- ",
+        "    |",
+        " --- ",
+        "|    ",
+        " --- ",
+    ],
+    "3": [
+        " --- ",
+        "    |",
+        " --- ",
+        "    |",
+        " --- ",
+    ],
+    "4": [
+        "|   |",
+        "|   |",
+        " --- ",
+        "    |",
+        "    |",
+    ],
+    "5": [
+        " --- ",
+        "|    ",
+        " --- ",
+        "    |",
+        " --- ",
+    ],
+    "6": [
+        " --- ",
+        "|    ",
+        " --- ",
+        "|   |",
+        " --- ",
+    ],
+    "7": [
+        " --- ",
+        "    |",
+        "    |",
+        "    |",
+        "    |",
+    ],
+    "8": [
+        " --- ",
+        "|   |",
+        " --- ",
+        "|   |",
+        " --- ",
+    ],
+    "9": [
+        " --- ",
+        "|   |",
+        " --- ",
+        "    |",
+        " --- ",
+    ],
+    ":": [
+        "     ",
+        "  .  ",
+        "     ",
+        "  .  ",
+        "     ",
+    ],
+}
+
+OUTLINE_DIGITS = {
+    "0": [
+        " /-\\ ",
+        "|   |",
+        "|   |",
+        "|   |",
+        " \\-/ ",
+    ],
+    "1": [
+        "  /| ",
+        " / | ",
+        "   | ",
+        "   | ",
+        "  _|_",
+    ],
+    "2": [
+        " /--\\",
+        "    /",
+        "  _/ ",
+        " /   ",
+        "/___ ",
+    ],
+    "3": [
+        " /--\\",
+        "    /",
+        "  -< ",
+        "    \\",
+        " \\--/",
+    ],
+    "4": [
+        " /  /",
+        "/  / ",
+        "|__|_",
+        "   / ",
+        "  /  ",
+    ],
+    "5": [
+        " ____",
+        "|    ",
+        "|--\\ ",
+        "    |",
+        " \\--/",
+    ],
+    "6": [
+        " /--\\",
+        "|    ",
+        "|--\\ ",
+        "|   |",
+        " \\--/",
+    ],
+    "7": [
+        "____/",
+        "   / ",
+        "  /  ",
+        " /   ",
+        "/    ",
+    ],
+    "8": [
+        " /--\\",
+        "|   |",
+        " >--<",
+        "|   |",
+        " \\--/",
+    ],
+    "9": [
+        " /--\\",
+        "|   |",
+        " \\--|",
+        "    |",
+        " \\--/",
+    ],
+    ":": [
+        "   ",
+        " o ",
+        "   ",
+        " o ",
+        "   ",
+    ],
+}
+
+MINIMAL_DIGITS = {
+    "0": [
+        " _ ",
+        "| |",
+        "| |",
+        "|_|",
+        "   ",
+    ],
+    "1": [
+        "   ",
+        "  |",
+        "  |",
+        "  |",
+        "   ",
+    ],
+    "2": [
+        " _ ",
+        " _|",
+        "|_ ",
+        "   ",
+        "   ",
+    ],
+    "3": [
+        " _ ",
+        " _|",
+        " _|",
+        "   ",
+        "   ",
+    ],
+    "4": [
+        "   ",
+        "|_|",
+        "  |",
+        "   ",
+        "   ",
+    ],
+    "5": [
+        " _ ",
+        "|_ ",
+        " _|",
+        "   ",
+        "   ",
+    ],
+    "6": [
+        " _ ",
+        "|_ ",
+        "|_|",
+        "   ",
+        "   ",
+    ],
+    "7": [
+        " _ ",
+        "  |",
+        "  |",
+        "   ",
+        "   ",
+    ],
+    "8": [
+        " _ ",
+        "|_|",
+        "|_|",
+        "   ",
+        "   ",
+    ],
+    "9": [
+        " _ ",
+        "|_|",
+        " _|",
+        "   ",
+        "   ",
+    ],
+    ":": [
+        " ",
+        ".",
+        " ",
+        ".",
+        " ",
+    ],
+}
+
+DIGIT_STYLES: Dict[str, Dict[str, List[str]]] = {
+    "block": BLOCK_DIGITS,
+    "outline": OUTLINE_DIGITS,
+    "segment": SEGMENT_DIGITS,
+    "minimal": MINIMAL_DIGITS,
 }
 
 
@@ -169,6 +416,13 @@ def get_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
         help="Wait for a key press on transition screens before the next phase.",
     )
     parser.add_argument(
+        "-d",
+        "--digit-style",
+        choices=sorted(DIGIT_STYLES.keys()),
+        default="block",
+        help="Large timer digit style (default: block).",
+    )
+    parser.add_argument(
         "--version",
         action="version",
         version=f"pompy {__version__}",
@@ -223,10 +477,11 @@ def draw_progress_bar(width: int, ratio: float) -> str:
     return "[" + ("#" * filled) + ("-" * (inner_width - filled)) + "]"
 
 
-def build_large_timer_lines(text: str) -> List[str]:
+def build_large_timer_lines(text: str, digit_style: str) -> List[str]:
+    digit_map = DIGIT_STYLES[digit_style]
     lines = ["", "", "", "", ""]
     for char_index, char in enumerate(text):
-        glyph = BIG_DIGITS.get(char)
+        glyph = digit_map.get(char)
         if glyph is None:
             continue
         spacer = " " if char_index > 0 else ""
@@ -241,15 +496,18 @@ def draw_phase(
     total_seconds: int,
     label: Optional[str],
     phase_name: str,
-    phase_index: int,
-    total_phases: int,
+    work_index: int,
+    total_work_sessions: int,
+    break_index: int,
+    total_break_sessions: int,
     paused: bool,
+    digit_style: str,
 ) -> None:
     is_break = phase_name != "Work"
     is_long_break = phase_name == "Long break"
 
     text = format_mmss(total_seconds)
-    large_lines = build_large_timer_lines(text)
+    large_lines = build_large_timer_lines(text, digit_style)
     large_width = max(len(line) for line in large_lines)
 
     stdscr.clear()
@@ -277,7 +535,10 @@ def draw_phase(
     top = box_center_y - box_height // 2
     left = (cols - box_width) // 2
 
-    status = f"{phase_name} ({phase_index}/{total_phases})"
+    if is_break:
+        status = f"{phase_name} ({break_index}/{total_break_sessions})"
+    else:
+        status = f"{phase_name} ({work_index}/{total_work_sessions})"
     if is_long_break:
         status_attr = curses.color_pair(6) | curses.A_BOLD
     elif is_break:
@@ -386,8 +647,11 @@ def run_phase(
     phase_name: str,
     minutes: int,
     label: Optional[str],
-    phase_index: int,
-    total_phases: int,
+    work_index: int,
+    total_work_sessions: int,
+    break_index: int,
+    total_break_sessions: int,
+    digit_style: str,
 ) -> bool:
     total_seconds = minutes * 60
     phase_total_seconds = total_seconds
@@ -415,9 +679,12 @@ def run_phase(
             total_seconds,
             phase_label,
             phase_name,
-            phase_index,
-            total_phases,
+            work_index,
+            total_work_sessions,
+            break_index,
+            total_break_sessions,
             paused,
+            digit_style,
         )
         time.sleep(0.1)
 
@@ -506,6 +773,11 @@ def run_session(stdscr, plan: SessionPlan, label: Optional[str], args: argparse.
     curses.init_pair(5, curses.COLOR_BLUE, -1)
     curses.init_pair(6, curses.COLOR_MAGENTA, -1)
 
+    total_work_sessions = sum(1 for phase_name, _ in plan if phase_name == "Work")
+    total_break_sessions = sum(1 for phase_name, _ in plan if phase_name != "Work")
+    work_counter = 0
+    break_counter = 0
+
     try:
         for phase_index, (phase_name, minutes) in enumerate(plan, start=1):
             if phase_index > 1:
@@ -522,13 +794,25 @@ def run_session(stdscr, plan: SessionPlan, label: Optional[str], args: argparse.
                     show_message(stdscr, "Quit. Take a breath.")
                     return
 
+            if phase_name == "Work":
+                work_counter += 1
+                current_work = work_counter
+                current_break = break_counter
+            else:
+                break_counter += 1
+                current_work = work_counter
+                current_break = break_counter
+
             quit_early = run_phase(
                 stdscr,
                 phase_name,
                 minutes,
                 label,
-                phase_index,
-                len(plan),
+                current_work,
+                total_work_sessions,
+                current_break,
+                total_break_sessions,
+                args.digit_style,
             )
             if quit_early:
                 show_message(stdscr, "Quit. Take a breath.")
