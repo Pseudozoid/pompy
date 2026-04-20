@@ -254,77 +254,77 @@ MINIMAL_DIGITS = {
         "| |",
         "| |",
         "|_|",
-        "   ",
+        "|_|",
     ],
     "1": [
         "   ",
         "  |",
         "  |",
         "  |",
-        "   ",
+        "  |",
     ],
     "2": [
         " _ ",
+        "  |",
         " _|",
-        "|_ ",
-        "   ",
-        "   ",
+        "|  ",
+        "|__",
     ],
     "3": [
         " _ ",
+        "  |",
         " _|",
+        "  |",
         " _|",
-        "   ",
-        "   ",
     ],
     "4": [
         "   ",
         "|_|",
         "  |",
-        "   ",
-        "   ",
+        "  |",
+        "  |",
     ],
     "5": [
         " _ ",
+        "|  ",
         "|_ ",
+        "  |",
         " _|",
-        "   ",
-        "   ",
     ],
     "6": [
         " _ ",
+        "|  ",
         "|_ ",
+        "| |",
         "|_|",
-        "   ",
-        "   ",
     ],
     "7": [
         " _ ",
         "  |",
         "  |",
-        "   ",
-        "   ",
+        "  |",
+        "  |",
     ],
     "8": [
         " _ ",
+        "| |",
         "|_|",
+        "| |",
         "|_|",
-        "   ",
-        "   ",
     ],
     "9": [
         " _ ",
+        "| |",
         "|_|",
+        "  |",
         " _|",
-        "   ",
-        "   ",
     ],
     ":": [
-        " ",
-        ".",
-        " ",
-        ".",
-        " ",
+        "   ",
+        " . ",
+        "   ",
+        " . ",
+        "   ",
     ],
 }
 
@@ -521,15 +521,24 @@ def draw_progress_bar(width: int, ratio: float) -> str:
 
 def build_large_timer_lines(text: str, digit_style: str) -> List[str]:
     digit_map = DIGIT_STYLES[digit_style]
-    lines = ["", "", "", "", ""]
+    style_height = len(next(iter(digit_map.values())))
+    style_width = max(len(row) for glyph in digit_map.values() for row in glyph)
+
+    lines = ["" for _ in range(style_height)]
     for char_index, char in enumerate(text):
         glyph = digit_map.get(char)
         if glyph is None:
-            continue
+            glyph = [" " * style_width for _ in range(style_height)]
+
         spacer = " " if char_index > 0 else ""
-        for row in range(5):
-            lines[row] += spacer + glyph[row]
+        for row in range(style_height):
+            lines[row] += spacer + glyph[row].ljust(style_width)
     return lines
+
+
+def get_digit_style_width(digit_style: str) -> int:
+    digit_map = DIGIT_STYLES[digit_style]
+    return max(len(row) for glyph in digit_map.values() for row in glyph)
 
 
 def draw_phase(
@@ -550,7 +559,8 @@ def draw_phase(
 
     text = format_mmss(total_seconds)
     large_lines = build_large_timer_lines(text, digit_style)
-    large_width = max(len(line) for line in large_lines)
+    style_width = get_digit_style_width(digit_style)
+    large_width = (len(text) * style_width) + max(0, len(text) - 1)
 
     stdscr.clear()
     rows, cols = stdscr.getmaxyx()

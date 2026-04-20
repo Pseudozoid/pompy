@@ -1,4 +1,4 @@
-from pompy.cli import build_phase_states, build_session_plan, get_args
+from pompy.cli import build_large_timer_lines, build_phase_states, build_session_plan, get_args
 
 
 def test_default_args() -> None:
@@ -103,3 +103,20 @@ def test_bell_toggle_parse() -> None:
 
     args = get_args(["--no-bell", "--bell"])
     assert args.bell is True
+
+
+def test_large_digit_width_is_stable_for_minimal() -> None:
+    widths = []
+    for timer_text in ["00:00", "11:11", "59:59", "08:40"]:
+        lines = build_large_timer_lines(timer_text, "minimal")
+        widths.append(max(len(line) for line in lines))
+
+    assert len(set(widths)) == 1
+
+
+def test_large_digit_width_is_stable_for_all_styles() -> None:
+    for style in ["block", "outline", "segment", "minimal"]:
+        w1 = max(len(line) for line in build_large_timer_lines("00:00", style))
+        w2 = max(len(line) for line in build_large_timer_lines("11:11", style))
+        w3 = max(len(line) for line in build_large_timer_lines("59:59", style))
+        assert w1 == w2 == w3
