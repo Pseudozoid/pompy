@@ -60,6 +60,7 @@ Control the transition screen between phases:
 ```bash
 pompy --transition-seconds 3
 pompy --transition-wait-key
+pompy --no-bell
 pompy -t 3
 pompy -w
 ```

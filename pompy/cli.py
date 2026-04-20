@@ -416,6 +416,19 @@ def get_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
         help="Wait for a key press on transition screens before the next phase.",
     )
     parser.add_argument(
+        "--bell",
+        dest="bell",
+        action="store_true",
+        help="Ring terminal bell on phase changes.",
+    )
+    parser.add_argument(
+        "--no-bell",
+        dest="bell",
+        action="store_false",
+        help="Disable terminal bell on phase changes.",
+    )
+    parser.set_defaults(bell=True)
+    parser.add_argument(
         "-d",
         "--digit-style",
         choices=sorted(DIGIT_STYLES.keys()),
@@ -759,6 +772,16 @@ def draw_box(stdscr, top, left, width, height, attr=0):
         stdscr.addch(top + i, left, '|', attr)
         stdscr.addch(top + i, left + width - 1, '|', attr)
 
+
+def notify_phase_change(enable_bell: bool) -> None:
+    if not enable_bell:
+        return
+    try:
+        curses.beep()
+    except curses.error:
+        # Fallback to ASCII bell if terminal beep is unavailable.
+        print("\a", end="", flush=True)
+
 def run_session(stdscr, plan: SessionPlan, label: Optional[str], args: argparse.Namespace) -> None:
     curses.start_color()
     curses.use_default_colors()
@@ -781,6 +804,7 @@ def run_session(stdscr, plan: SessionPlan, label: Optional[str], args: argparse.
     try:
         for phase_index, (phase_name, minutes) in enumerate(plan, start=1):
             if phase_index > 1:
+                notify_phase_change(args.bell)
                 quit_early = show_transition(
                     stdscr,
                     phase_name,

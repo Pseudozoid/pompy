@@ -11,6 +11,7 @@ def test_default_args() -> None:
     assert args.cycles == 1
     assert args.transition_seconds == 2.0
     assert args.transition_wait_key is False
+    assert args.bell is True
     assert args.digit_style == "block"
 
 
@@ -57,10 +58,11 @@ def test_break_cycle_plan_uses_long_break_every_fourth_cycle() -> None:
 
 
 def test_transition_options_parse() -> None:
-    args = get_args(["--transition-seconds", "3.5", "--transition-wait-key"])
+    args = get_args(["--transition-seconds", "3.5", "--transition-wait-key", "--no-bell"])
 
     assert args.transition_seconds == 3.5
     assert args.transition_wait_key is True
+    assert args.bell is False
 
 
 def test_short_flags_parse() -> None:
@@ -71,6 +73,7 @@ def test_short_flags_parse() -> None:
     assert args.cycles == 3
     assert args.transition_seconds == 4.0
     assert args.transition_wait_key is True
+    assert args.bell is True
 
 
 def test_digit_style_options_parse() -> None:
@@ -82,3 +85,11 @@ def test_digit_style_options_parse() -> None:
 
     args = get_args(["-d", "minimal"])
     assert args.digit_style == "minimal"
+
+
+def test_bell_toggle_parse() -> None:
+    args = get_args(["--no-bell"])
+    assert args.bell is False
+
+    args = get_args(["--no-bell", "--bell"])
+    assert args.bell is True
