@@ -6,6 +6,7 @@ from typing import Dict, List, Optional, Sequence, Tuple
 from pompy import __version__
 
 SessionPlan = List[Tuple[str, int]]
+PhaseState = Tuple[str, int, int, int, int, int]
 
 BLOCK_DIGITS = {
     "0": [
@@ -470,6 +471,34 @@ def build_session_plan(
     return plan
 
 
+def build_phase_states(plan: SessionPlan) -> List[PhaseState]:
+    total_work_sessions = sum(1 for phase_name, _ in plan if phase_name == "Work")
+    total_break_sessions = sum(1 for phase_name, _ in plan if phase_name != "Work")
+
+    work_counter = 0
+    break_counter = 0
+    phase_states: List[PhaseState] = []
+
+    for phase_name, minutes in plan:
+        if phase_name == "Work":
+            work_counter += 1
+        else:
+            break_counter += 1
+
+        phase_states.append(
+            (
+                phase_name,
+                minutes,
+                work_counter,
+                total_work_sessions,
+                break_counter,
+                total_break_sessions,
+            )
+        )
+
+    return phase_states
+
+
 def safe_addstr(stdscr, y: int, x: int, text: str, attr: int = 0) -> None:
     try:
         stdscr.addstr(y, x, text, attr)
@@ -796,13 +825,19 @@ def run_session(stdscr, plan: SessionPlan, label: Optional[str], args: argparse.
     curses.init_pair(5, curses.COLOR_BLUE, -1)
     curses.init_pair(6, curses.COLOR_MAGENTA, -1)
 
-    total_work_sessions = sum(1 for phase_name, _ in plan if phase_name == "Work")
-    total_break_sessions = sum(1 for phase_name, _ in plan if phase_name != "Work")
-    work_counter = 0
-    break_counter = 0
+    phase_states = build_phase_states(plan)
 
     try:
-        for phase_index, (phase_name, minutes) in enumerate(plan, start=1):
+        for phase_index, phase_state in enumerate(phase_states, start=1):
+            (
+                phase_name,
+                minutes,
+                current_work,
+                total_work_sessions,
+                current_break,
+                total_break_sessions,
+            ) = phase_state
+
             if phase_index > 1:
                 notify_phase_change(args.bell)
                 quit_early = show_transition(
@@ -817,15 +852,6 @@ def run_session(stdscr, plan: SessionPlan, label: Optional[str], args: argparse.
                 if quit_early:
                     show_message(stdscr, "Quit. Take a breath.")
                     return
-
-            if phase_name == "Work":
-                work_counter += 1
-                current_work = work_counter
-                current_break = break_counter
-            else:
-                break_counter += 1
-                current_work = work_counter
-                current_break = break_counter
 
             quit_early = run_phase(
                 stdscr,

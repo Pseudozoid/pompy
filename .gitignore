@@ -19,4 +19,7 @@ dist/
 *.swp
 *.swo
 
+# Local release notes/checklists
+RELEASE_CHECKLIST.md
+
 

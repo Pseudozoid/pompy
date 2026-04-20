@@ -1,4 +1,4 @@
-from pompy.cli import build_session_plan, get_args
+from pompy.cli import build_phase_states, build_session_plan, get_args
 
 
 def test_default_args() -> None:
@@ -55,6 +55,16 @@ def test_break_cycle_plan_uses_long_break_every_fourth_cycle() -> None:
         ("Long break", 15),
         ("Work", 25),
     ]
+
+
+def test_phase_states_track_work_and_break_counters() -> None:
+    plan = build_session_plan(25, 5, 15, 5)
+    states = build_phase_states(plan)
+
+    assert states[0] == ("Work", 25, 1, 5, 0, 4)
+    assert states[1] == ("Break", 5, 1, 5, 1, 4)
+    assert states[7] == ("Long break", 15, 4, 5, 4, 4)
+    assert states[8] == ("Work", 25, 5, 5, 4, 4)
 
 
 def test_transition_options_parse() -> None:
