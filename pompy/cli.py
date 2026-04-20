@@ -564,8 +564,9 @@ def draw_phase(
 
     stdscr.clear()
     rows, cols = stdscr.getmaxyx()
-    compact_mode = rows < 16 or cols < 52
-    can_use_large_digits = not compact_mode and rows >= 22 and cols >= large_width + 12
+    # Keep large digits available on more terminal sizes while still preventing clipping.
+    can_use_large_digits = rows >= 18 and cols >= large_width + 8
+    compact_mode = (not can_use_large_digits) and (rows < 14 or cols < 40)
 
     y = rows // 2
     x = max(0, (cols - len(text)) // 2)
