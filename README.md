@@ -1,5 +1,7 @@
 # pompy
 
+![Pompy Demo](.github/pompy_gif.gif)
+
 A simple Pomodoro timer for your terminal.
 
 ## Install
